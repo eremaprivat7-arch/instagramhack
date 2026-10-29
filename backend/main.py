@@ -4,22 +4,31 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from datetime import datetime
-import sqlite3, time, os
+import sqlite3, time, os, sys
+
+# Добавляем папку backend в пути поиска модулей, чтобы Python нашел db.py и ig_check.py
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from db import init
 from ig_check import check_password
 
+# Пути к папкам
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 ADMIN_DIR = os.path.join(BASE_DIR, "admin")
 
 app = FastAPI()
+
 if not os.path.exists(STATIC_DIR):
     os.makedirs(STATIC_DIR)
 
+# Подключаем статику
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# Ключ для входа в админку (СМЕНИ НА СВОЙ!)
 ADMIN_KEY = "change_me_123"
+
+# Инициализация базы
 conn = init()
 
 class VerifyIn(BaseModel):
